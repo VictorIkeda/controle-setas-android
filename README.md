@@ -6,7 +6,10 @@ O celular fica ligado ao PC por cabo USB; os ataques continuam no teclado.
 ## Instalar (uma vez)
 
 ### No PC
-1. **Driver Interception** (faz o Windows ver as setas como um teclado de verdade):
+O programa funciona **sem driver**: usa o `SendInput` do Windows. Só instale o driver abaixo
+se algum jogo ignorar as setas (alguns anti-cheats fazem isso).
+
+1. *(Opcional)* **Driver Interception** (faz o Windows ver as setas como um teclado de verdade):
    - Baixe a versão 1.0.1 em https://github.com/oblitum/Interception/releases
    - Abra o Prompt de Comando **como administrador** e rode
      `"command line installer\install-interception.exe" /install`
@@ -23,7 +26,8 @@ O celular fica ligado ao PC por cabo USB; os ataques continuam no teclado.
 
 ## Jogar
 1. Ligue o celular pelo cabo.
-2. Abra `dist\SetasPc.exe`. Ele mostra "Driver Interception: Instalado" e espera o celular.
+2. Abra `dist\SetasPc.exe`. Ele mostra o modo das teclas (sem driver ou Interception) e espera o celular.
+   Se o jogo rodar como administrador, abra o `SetasPc.exe` como administrador também.
 3. Abra o app **Setas** no celular. Os dois lados mostram "Conectado".
 4. Abra o jogo.
 
@@ -32,8 +36,9 @@ O celular fica ligado ao PC por cabo USB; os ataques continuam no teclado.
 - **Vibração**: só nas setas; liga/desliga no topo.
 - Se o cabo soltar, o app sair da tela ou o celular girar, todas as setas são soltas na hora.
 
-## Testar o driver nos jogos
+## Testar nos jogos (sem celular)
 `dist\SetasPc.exe --teste` → em 5 s ele aperta ↑, →, ↓+→ e faz um meia-lua. Deixe o jogo em foco no modo treino.
+Com o driver instalado, `--teste --sem-driver` testa o modo sem driver.
 
 ## Compilar
 - PC: `dotnet test pc` e `dotnet publish pc/src/SetasPc -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist`

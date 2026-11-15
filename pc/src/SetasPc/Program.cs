@@ -4,14 +4,11 @@ using SetasPc.Core;
 const int Port = 28777;
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-var sink = InterceptionKeySink.TryCreate(out var erro);
-if (sink is null)
-{
-    Console.WriteLine(erro);
-    Console.WriteLine("\nPressione Enter para sair.");
-    Console.ReadLine();
-    return 1;
-}
+// Usa o driver Interception se estiver instalado; senão, o SendInput do Windows (sem driver).
+// "--sem-driver" força o SendInput mesmo com o driver instalado.
+InterceptionKeySink? interception = args.Contains("--sem-driver") ? null : InterceptionKeySink.TryCreate(out _);
+IKeySink sink = interception is not null ? interception : new SendInputKeySink();
+string modo = interception is not null ? "Interception (driver)" : "Sem driver (SendInput)";
 
 var controller = new ArrowController(sink, TimeSpan.FromMilliseconds(300));
 using var cts = new CancellationTokenSource();
@@ -21,18 +18,18 @@ AppDomain.CurrentDomain.ProcessExit += (_, _) => controller.Shutdown();
 try
 {
     if (args.Contains("--teste"))
-        return RunTest(controller);
+        return RunTest(controller, modo);
 
-    await RunNormal(controller, cts.Token);
+    await RunNormal(controller, modo, cts.Token);
     return 0;
 }
 finally
 {
     controller.Shutdown();
-    sink.Dispose();
+    interception?.Dispose();
 }
 
-static async Task RunNormal(ArrowController ctl, CancellationToken ct)
+static async Task RunNormal(ArrowController ctl, string modo, CancellationToken ct)
 {
     var server = new PhoneServer(Port, ctl);
     bool connected = false;
@@ -40,7 +37,7 @@ static async Task RunNormal(ArrowController ctl, CancellationToken ct)
     server.ConnectionChanged += c => connected = c;
     var run = server.RunAsync(ct);
 
-    Console.Clear();
+    try { Console.Clear(); } catch (IOException) { }
     var nextAdb = DateTime.MinValue;
     while (!ct.IsCancellationRequested && !run.IsCompleted)
     {
@@ -49,25 +46,26 @@ static async Task RunNormal(ArrowController ctl, CancellationToken ct)
             adbStatus = Adb.TryReverse(Port, out var e) ? "Aguardando o app abrir..." : e;
             nextAdb = DateTime.UtcNow.AddSeconds(2);
         }
-        Draw(connected, connected ? "" : adbStatus, ctl.Current);
+        Draw(modo, connected, connected ? "" : adbStatus, ctl.Current);
         try { await Task.Delay(50, ct); } catch (OperationCanceledException) { }
     }
     try { await run; } catch (OperationCanceledException) { }
 }
 
-static void Draw(bool connected, string status, Arrows a)
+static void Draw(string modo, bool connected, string status, Arrows a)
 {
     string On(Arrows k, string s) => a.HasFlag(k) ? $"[{s}]" : $" {s} ";
     var lines = new[]
     {
         "Setas Celular",
         "",
-        "Driver Interception: Instalado",
+        "Teclas:              " + modo,
         "Celular (cabo USB):  " + (connected ? "Conectado" : "Aguardando"),
         status,
         "",
         "Setas agora:  " + On(Arrows.Up, "↑") + On(Arrows.Down, "↓") + On(Arrows.Left, "←") + On(Arrows.Right, "→"),
         "",
+        "Se o jogo não reagir e rodar como administrador, abra este programa como administrador.",
         "Ctrl+C para sair. Se o cabo soltar, todas as setas são soltas na hora.",
     };
     try
@@ -82,9 +80,9 @@ static void Draw(bool connected, string status, Arrows a)
     }
 }
 
-static int RunTest(ArrowController ctl)
+static int RunTest(ArrowController ctl, string modo)
 {
-    Console.WriteLine("Modo de teste: troque para o jogo (modo treino).");
+    Console.WriteLine($"Modo de teste ({modo}): troque para o jogo (modo treino).");
     for (int s = 5; s > 0; s--)
     {
         Console.WriteLine($"Começando em {s}...");

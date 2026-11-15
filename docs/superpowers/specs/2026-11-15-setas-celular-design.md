@@ -2,6 +2,11 @@
 
 Data: 2026-11-15
 
+> **Mudança (2026-11-15, decisão do usuário):** o programa do PC funciona **sem driver**, usando o
+> `SendInput` do Windows com scan codes. Se o driver Interception estiver instalado, ele é usado
+> automaticamente; `--sem-driver` força o SendInput. Risco aceito: alguns anti-cheats ignoram teclas
+> do SendInput; nesse caso, as opções são instalar o Interception ou usar a placa Pico.
+
 ## Intenção e o porquê
 
 O usuário joga jogos de luta no PC com Windows. Ele quer usar o celular Android, deitado ao lado do teclado, como **direcional**: setas na tela que se pressionam deslizando o dedo, mais um analógico. Os botões de ataque continuam no **teclado físico**. O celular envia apenas as quatro setas do teclado (↑ ↓ ← →).
