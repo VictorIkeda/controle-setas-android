@@ -5,3 +5,4 @@ obj/
 build/
 local.properties
 *.apk
+dist/
