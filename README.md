@@ -1,3 +1,7 @@
+# Meu primeiro APP criado 100% com vibe code usando claude
+A intenção desse projeto é criar um teclado virtual para executar comando complexo em jogos de lutas usando teclado, mas ja que não tenho controle hitbox ou teclas deslizantes tipo de notebook em meu desktop, eu pensei em adaptar a tela do meu celular ter as teclas de movimento deslizantes para jogar games de lutas.
+para executar golpes que exigem 2x meia lua em teclado que as setas sao altas é muito dificil, mas quando voce faz deslizando os dedo sobre a teclas a taxa de acerto é de 95% no comando.
+
 # Setas no Celular
 
 Use o celular Android como direcional (4 setas + analógico) em jogos de luta no Windows.
