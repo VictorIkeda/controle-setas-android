@@ -11,6 +11,7 @@ public sealed class ArrowController
     readonly object _gate = new();
     Arrows _current;
     DateTime _lastByteAt;
+    bool _closed;
 
     public ArrowController(IKeySink sink, TimeSpan timeout)
     {
@@ -24,6 +25,7 @@ public sealed class ArrowController
     {
         lock (_gate)
         {
+            if (_closed) return;
             _lastByteAt = now;
             if (b > 15) return;
             Apply((Arrows)b);
@@ -42,6 +44,16 @@ public sealed class ArrowController
     public void ReleaseAll()
     {
         lock (_gate) Apply(Arrows.None);
+    }
+
+    /// <summary>Solta tudo de vez: nenhum byte que chegue depois aperta tecla de novo.</summary>
+    public void Shutdown()
+    {
+        lock (_gate)
+        {
+            _closed = true;
+            Apply(Arrows.None);
+        }
     }
 
     void Apply(Arrows next)

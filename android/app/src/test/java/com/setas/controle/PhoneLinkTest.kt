@@ -21,6 +21,8 @@ class PhoneLinkTest {
     @Volatile private var accepted: Socket? = null
     @Volatile private var readerDone = false
 
+    private var sendHello = true
+
     private fun openServer() {
         server = ServerSocket().apply {
             reuseAddress = true
@@ -31,6 +33,7 @@ class PhoneLinkTest {
         Thread {
             try {
                 val c = s.accept()
+                if (sendHello) c.getOutputStream().apply { write(0xA5); flush() }
                 accepted = c
                 val input = c.getInputStream()
                 while (true) {
@@ -82,6 +85,17 @@ class PhoneLinkTest {
         accepted = null
         openServer()
         eventually(2000) { connects.get() == 2 }
+    }
+
+    @Test fun withoutHello_neverReportsConnected() {
+        eventually(1000) { connects.get() == 1 }
+        accepted?.close()
+        server.close()
+        accepted = null
+        sendHello = false
+        openServer()
+        Thread.sleep(2500)
+        assertEquals(1, connects.get())
     }
 
     @Test fun stop_sendsZeroFirst() {

@@ -78,6 +78,17 @@ public class ArrowControllerTests
     }
 
     [Fact]
+    public void Shutdown_ReleasesAndIgnoresLaterBytes()
+    {
+        var (ctl, sink) = Make();
+        ctl.OnByte(1, T0);
+        ctl.Shutdown();
+        ctl.OnByte(2, T0);
+        Assert.Equal(new[] { "+Up", "-Up" }, sink.Events);
+        Assert.Equal(Arrows.None, ctl.Current);
+    }
+
+    [Fact]
     public void KeyDiff_ReleasesBeforePresses()
     {
         var diff = KeyDiff.Compute(Arrows.Up, Arrows.Down);

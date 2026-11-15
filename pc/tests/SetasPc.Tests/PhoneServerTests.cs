@@ -47,6 +47,17 @@ public class PhoneServerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Client_ReceivesHelloByte()
+    {
+        using var c = await Connect();
+        var buf = new byte[1];
+        c.GetStream().ReadTimeout = 1000;
+        int n = await c.GetStream().ReadAsync(buf);
+        Assert.Equal(1, n);
+        Assert.Equal(PhoneServer.Hello, buf[0]);
+    }
+
+    [Fact]
     public async Task ClientSendsByte_ControllerPresses()
     {
         using var c = await Connect();
@@ -75,6 +86,8 @@ public class PhoneServerTests : IAsyncLifetime
         await Eventually(() => _ctl.Current == Arrows.None);
 
         var buf = new byte[1];
+        Assert.Equal(1, await first.GetStream().ReadAsync(buf));
+        Assert.Equal(PhoneServer.Hello, buf[0]);
         var readTask = first.GetStream().ReadAsync(buf).AsTask();
         var done = await Task.WhenAny(readTask, Task.Delay(1000));
         Assert.Same(readTask, done);

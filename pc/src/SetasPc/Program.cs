@@ -16,7 +16,7 @@ if (sink is null)
 var controller = new ArrowController(sink, TimeSpan.FromMilliseconds(300));
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
-AppDomain.CurrentDomain.ProcessExit += (_, _) => controller.ReleaseAll();
+AppDomain.CurrentDomain.ProcessExit += (_, _) => controller.Shutdown();
 
 try
 {
@@ -28,7 +28,7 @@ try
 }
 finally
 {
-    controller.ReleaseAll();
+    controller.Shutdown();
     sink.Dispose();
 }
 

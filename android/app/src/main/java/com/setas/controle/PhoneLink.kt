@@ -14,6 +14,11 @@ class PhoneLink(
     private val port: Int = 28777,
     private val heartbeatMs: Long = 100,
 ) {
+    companion object {
+        /** Primeiro byte que o programa do PC envia ao aceitar a conexão. */
+        const val HELLO = 0xA5
+    }
+
     @Volatile var onConnectionChanged: ((Boolean) -> Unit)? = null
 
     private val lock = Object()
@@ -67,6 +72,11 @@ class PhoneLink(
                 Socket().use { socket ->
                     socket.tcpNoDelay = true
                     socket.connect(InetSocketAddress(host, port), 500)
+                    // O adb aceita a conexão mesmo com o programa do PC fechado:
+                    // só conta como conectado depois do "olá" do PC.
+                    socket.soTimeout = 1000
+                    if (socket.getInputStream().read() != HELLO) throw IOException("sem olá do PC")
+                    socket.soTimeout = 0
                     connected = true
                     onConnectionChanged?.invoke(true)
                     val out = socket.getOutputStream()

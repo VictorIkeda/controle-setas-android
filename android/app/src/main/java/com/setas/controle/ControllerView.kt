@@ -6,7 +6,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.RectF
+import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -39,8 +41,7 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
     private var sized = false
 
     private var stickPointer = -1
-    private var knobDx = 0f
-    private var knobDy = 0f
+    private val floating = FloatingStick()
 
     private enum class DragMode { MOVE_BLOCK, RESIZE_BLOCK, MOVE_STICK, RESIZE_STICK }
     private class Drag(val mode: DragMode, val startX: Float, val startY: Float, val start: Layout)
@@ -71,8 +72,7 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
     fun releaseAll() {
         touch.releaseAll()
         stickPointer = -1
-        knobDx = 0f
-        knobDy = 0f
+        floating.up()
         onMask?.invoke(0)
         invalidate()
     }
@@ -80,7 +80,19 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
     fun resetLayout() {
         store.clear(landscape)
         layout = LayoutModel.default(width.toFloat(), height.toFloat())
+        updateGestureExclusion()
         invalidate()
+    }
+
+    /** Impede que o gesto de "voltar" da borda da tela roube toques das setas e do analógico. */
+    private fun updateGestureExclusion() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        val b = layout.block
+        val s = layout.stick
+        systemGestureExclusionRects = listOf(
+            Rect(b.x.toInt(), b.y.toInt(), (b.x + b.width).toInt(), (b.y + b.height).toInt()),
+            Rect(s.x.toInt(), s.y.toInt(), (s.x + s.size).toInt(), (s.y + s.size).toInt()),
+        )
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -96,6 +108,7 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
             val saved = store.load(landscape)
             layout = if (saved != null) LayoutModel.clamp(saved, w.toFloat(), h.toFloat(), minU, minStick)
             else LayoutModel.default(w.toFloat(), h.toFloat())
+            updateGestureExclusion()
         }
     }
 
@@ -124,9 +137,11 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
 
         val s = layout.stick
         canvas.drawCircle(s.centerX, s.centerY, s.size / 2, keyStroke)
-        canvas.drawCircle(s.centerX, s.centerY, s.deadZone, dashed)
-        canvas.drawCircle(s.centerX + knobDx, s.centerY + knobDy, s.size * 0.2f, knobPaint)
-        canvas.drawCircle(s.centerX + knobDx, s.centerY + knobDy, s.size * 0.2f, keyStroke)
+        val ox = floating.originXOr(s)
+        val oy = floating.originYOr(s)
+        canvas.drawCircle(ox, oy, s.deadZone, dashed)
+        canvas.drawCircle(ox + floating.knobDx, oy + floating.knobDy, s.size * 0.2f, knobPaint)
+        canvas.drawCircle(ox + floating.knobDx, oy + floating.knobDy, s.size * 0.2f, keyStroke)
 
         if (!locked) {
             val pad = 6 * dp
@@ -157,13 +172,15 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
     private fun playTouch(e: MotionEvent) {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                // Recebe cada movimento na hora, sem esperar o próximo quadro da tela.
+                requestUnbufferedDispatch(e)
                 val i = e.actionIndex
                 val id = e.getPointerId(i)
                 val x = e.getX(i)
                 val y = e.getY(i)
                 if (stickPointer == -1 && layout.stick.contains(x, y)) {
                     stickPointer = id
-                    updateStick(x, y)
+                    touch.setStick(floating.down(x, y, layout.stick))
                 } else {
                     touch.setPointer(id, layout.block.hit(x, y))
                 }
@@ -171,7 +188,7 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
             MotionEvent.ACTION_MOVE -> {
                 for (i in 0 until e.pointerCount) {
                     val id = e.getPointerId(i)
-                    if (id == stickPointer) updateStick(e.getX(i), e.getY(i))
+                    if (id == stickPointer) touch.setStick(floating.move(e.getX(i), e.getY(i), layout.stick))
                     else touch.setPointer(id, layout.block.hit(e.getX(i), e.getY(i)))
                 }
             }
@@ -179,8 +196,7 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
                 val id = e.getPointerId(e.actionIndex)
                 if (id == stickPointer) {
                     stickPointer = -1
-                    knobDx = 0f
-                    knobDy = 0f
+                    floating.up()
                     touch.setStick(0)
                 } else {
                     touch.removePointer(id)
@@ -192,20 +208,6 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
             }
         }
         publish()
-    }
-
-    private fun updateStick(x: Float, y: Float) {
-        val s = layout.stick
-        var dx = x - s.centerX
-        var dy = y - s.centerY
-        touch.setStick(StickMapper.map(dx, dy, s.size))
-        val d = hypot(dx, dy)
-        if (d > s.maxTravel) {
-            dx = dx / d * s.maxTravel
-            dy = dy / d * s.maxTravel
-        }
-        knobDx = dx
-        knobDy = dy
     }
 
     /** Envia ao PC primeiro; só depois vibra, para a vibração nunca atrasar a tecla. */
@@ -243,6 +245,7 @@ class ControllerView(context: Context, private val store: LayoutStore) : View(co
                     DragMode.RESIZE_STICK -> LayoutModel.resizeStick(d.start, dx, dy)
                 }
                 layout = LayoutModel.clamp(moved, width.toFloat(), height.toFloat(), minU, minStick)
+                updateGestureExclusion()
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> drag = null
         }

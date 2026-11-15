@@ -15,6 +15,9 @@ public sealed class PhoneServer
     TcpClient? _client;
     int _generation;
 
+    /// <summary>Primeiro byte que o PC envia: prova ao celular que o programa está mesmo aberto.</summary>
+    public const byte Hello = 0xA5;
+
     public PhoneServer(int port, ArrowController ctl)
     {
         _port = port;
@@ -47,6 +50,8 @@ public sealed class PhoneServer
                     old.Close();
                     _ctl.ReleaseAll();
                 }
+                try { client.GetStream().WriteByte(Hello); }
+                catch (IOException) { }
                 ConnectionChanged?.Invoke(true);
                 _ = Task.Run(() => ReadLoop(client, gen, ct), CancellationToken.None);
             }
@@ -54,7 +59,11 @@ public sealed class PhoneServer
         finally
         {
             listener.Stop();
-            lock (_gate) _client?.Close();
+            lock (_gate)
+            {
+                _generation++;
+                _client?.Close();
+            }
             _ctl.ReleaseAll();
         }
     }

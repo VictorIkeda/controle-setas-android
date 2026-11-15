@@ -12,7 +12,8 @@ O celular fica ligado ao PC por cabo USB; os ataques continuam no teclado.
      `"command line installer\install-interception.exe" /install`
    - **Reinicie o PC.**
    - Copie `library\x64\interception.dll` para a pasta `dist\` (junto do `SetasPc.exe`).
-2. A pasta `dist\` já traz o `SetasPc.exe` e o `adb.exe`. Precisa do .NET 8 Runtime (já instalado neste PC).
+2. A pasta `dist\` (gerada pelos comandos em "Compilar") traz `SetasPc.exe`, `adb.exe` e `Setas.apk`.
+   O `SetasPc.exe` precisa do .NET 8 Runtime.
 
 ### No celular
 1. Ative as **Opções do desenvolvedor**: Configurações → Sobre o telefone → toque 7 vezes em "Número da versão".
@@ -36,4 +37,6 @@ O celular fica ligado ao PC por cabo USB; os ataques continuam no teclado.
 
 ## Compilar
 - PC: `dotnet test pc` e `dotnet publish pc/src/SetasPc -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist`
-- Android: `cd android && gradlew test assembleDebug` (JDK 17 e Android SDK 34)
+- Android: `cd android && gradlew test assembleDebug` (JDK 17 e Android SDK 34), depois copie
+  `android/app/build/outputs/apk/debug/app-debug.apk` para `dist\Setas.apk`
+- `adb.exe`, `AdbWinApi.dll` e `AdbWinUsbApi.dll` vêm de `Android\Sdk\platform-tools`; copie para `dist\`.
