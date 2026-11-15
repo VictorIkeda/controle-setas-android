@@ -7,6 +7,26 @@ para executar golpes que exigem 2x meia lua em teclado que as setas sao altas é
 Use o celular Android como direcional (4 setas + analógico) em jogos de luta no Windows.
 O celular fica ligado ao PC por cabo USB; os ataques continuam no teclado.
 
+**Baixe pronto para usar na [página de Releases](https://github.com/VictorIkeda/controle-setas-android/releases/latest).**
+
+## Imagens
+
+**App no celular:** setas à esquerda (os cantos tracejados são as diagonais ↖ e ↗) e analógico à direita.
+
+![App Setas no celular, na horizontal](docs/images/app-horizontal.png)
+
+**Diagonal ↓+→ apertada:** as setas acesas ficam azuis.
+
+![App com as setas para baixo e para a direita apertadas](docs/images/app-seta-apertada.png)
+
+**Cadeado aberto (modo de ajuste):** arraste para mover e puxe o quadrado azul para mudar o tamanho.
+
+![App no modo de ajuste, com contornos e alças azuis](docs/images/app-ajuste.png)
+
+**Programa no PC:** mostra a conexão e as setas apertadas no momento (aqui, `[↓]` e `[→]`).
+
+![Janela do programa SetasPc mostrando Conectado e as setas apertadas](docs/images/pc-programa.png)
+
 ## Instalar (uma vez)
 
 ### No PC
